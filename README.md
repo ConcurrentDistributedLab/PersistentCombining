@@ -22,6 +22,10 @@ The following table presents a summary of the persistent concurrent data-structu
 |                       | PWFstack [1,2,3]                                                  |
 | Persistent Heaps      | PBheap [1,2]                                                      |
 
+# Experiments
+
+We execute each experiment 10 times (runs) and display averages. Each run simulates 10^7 atomic operations in total, with each of the n threads simulating 10^7/n operations. In the experiments for the stacks (queues), each thread performs pairs of Push and Pop (Enqueue and Dequeue) starting from an empty data structure. 
+
 # Reproduce experimental results
 
 First, run the `figures_pcomb_compile.sh` script to compile the executables. Then, run the `figures_pcomb_run.sh` script to produce the results of each figure in [1], regarding our algorithms. The script creates the output files in the `results` directory.
