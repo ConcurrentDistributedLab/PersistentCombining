@@ -28,7 +28,20 @@ We execute each experiment 10 times (runs) and display averages. Each run simula
 
 # Reproduce experimental results
 
-First, run the `figures_pcomb_compile.sh` script to compile the executables. Then, run the `figures_pcomb_run.sh` script to produce the results of each figure in [1], regarding our algorithms. The script creates the output files in the `results` directory.
+First, run the `figures_pcomb_compile.sh` script to compile the executables. Then, run the `figures_pcomb_run.sh` script to produce the results of each figure in [1], regarding our algorithms. The script creates the output files in the `results` directory. 
+
+Each figure presents either the average throughput (million operations per second) or the average number of pwbs per operation, as the number of threads increases. The following table presents more details for each figure.
+
+| Figures  | Experiment Description                                                            |
+| -------- | --------------------------------------------------------------------------------- |
+| 1a       | throughput for PBcomb and PWFcomb                                                 |
+| 1b       | number of pwbs for PBcomb and PWFcomb                                             |
+| 1c       | similar with 1a & versions of PBcomb and PWFcomb that do not execute any psync    |
+| 1d       | throughput for PBqueue (with and without recycling) and for PWFqueue              |
+| 1e       | number of pwbs for PBqueue and PWFqueue                                           |
+| 1f       | throughput for PBqueue and PWFqueue that do not execute any pwb                   |
+| 1g       | throughput for PBstack and PWFstack (with and without recycling or elimination)   |
+| 1h       | throughput for PBheap with heap size 64, 128, 256, 512, and 1024                  |
 
 # Memory reclamation (stacks and queues)
 
@@ -55,6 +68,8 @@ The following table shows the memory reclamation characteristics of the provided
     - `libpapi` in case that the `SYNCH_TRACK_CPU_COUNTERS` flag is enabled in `libconcurrent/config.h`.
     - `libvmem`, necessary for building the collection of persistent objects.
     - `libpmem`, necessary for building the collection of persistent objects.
+
+    Depending on where these packages are installed, the appropriate environment variable (e.g., the `LD_LIBRARY_PATH` variable for Linux) should contain the path to them.
 
 # License
 
