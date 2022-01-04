@@ -74,11 +74,15 @@ typedef struct PWFCombRequestRec {
     uint64_t pad[15];
 } PWFCombRequestRec;
 
+typedef struct PWFCombPersistentState{
+    /// @brief Index (i.e. pointer) to a PWFCombStateRec structs that contains the most recent and valid copy of simulated object's state.
+    volatile pointer_t S;
+} PWFCombPersistentState;
+
 /// @brief PWFCombStruct stores the state of an instance of the a PWFcomb persistent combining object.
 /// PWFCombStruct should be initialized using the PWFCombStructInit function.
 typedef struct PWFCombStruct {
-    /// @brief Index (i.e. pointer) to a PWFCombStateRec structs that contains the most recent and valid copy of simulated object's state.
-    volatile pointer_t S;
+    volatile PWFCombPersistentState *pstate;
     /// @brief A vector of toggle bits, one toggle per NUMA node. The object could also work fine with a single such toggle.
     /// However, by using one toggle per NUMA node, the performance is increased substantially.
     ToggleVector activate[_SIM_PERSISTENT_FAD_DIVISIONS_] CACHE_ALIGN;

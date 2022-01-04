@@ -43,9 +43,9 @@ typedef struct PBCombStateRec {
     uint64_t flex[0];
 } PBCombStateRec;
 
-typedef struct PersistentState{
+typedef struct PBCombPersistentState{
     volatile PBCombStateRec *last_state;
-} PersistentState;
+} PBCombPersistentState;
 
 /// @brief PBCombStruct stores the state of an instance of the a PBcomb persistent combining object.
 /// PBCombStruct should be initialized using the PBCombStructInit function.
@@ -74,7 +74,7 @@ typedef struct PBCombStruct {
     /// @brief A pointer to the latest valid, persisted state of the simulated object.
     /// For performance reasons, we use a pool of PBCOMB_POOL_SIZE * `n` such states instead of 2 in the paper
     /// (`n` is the number of threads).
-    volatile PersistentState *pstate;
+    volatile PBCombPersistentState *pstate;
     volatile void *aux;
 #ifdef DEBUG
     volatile int32_t counter CACHE_ALIGN;

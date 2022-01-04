@@ -92,8 +92,9 @@ void PWFCombStackInit(PWFCombStackStruct *stack, uint32_t nthreads, int max_back
         stack->flush[i] = synchGetAlignedMemory(CACHE_LINE_SIZE, sizeof(uint64_t));
     }
 
-    stack->S.struct_data.index = _SIM_PERSISTENT_LOCAL_POOL_SIZE_ * nthreads;
-    stack->S.struct_data.seq = 0;
+    stack->pstate = synchGetPersistentMemory(2*S_CACHE_LINE_SIZE, sizeof(PWFCombStackPersistentState));
+    stack->pstate->S.struct_data.index = _SIM_PERSISTENT_LOCAL_POOL_SIZE_ * nthreads;
+    stack->pstate->S.struct_data.seq = 0;
 
     // OBJECT'S INITIAL VALUE
     // ----------------------
@@ -179,11 +180,11 @@ Object PWFCombStackApplyOp(PWFCombStackStruct *stack, PWFCombStackThreadState *t
         for (i = 0; i < stack->nthreads; i++) {
             clNewItems_count[i] = 0;
         }
-        old_sp = stack->S;                                                           // read reference to struct ObjectState
+        old_sp = stack->pstate->S;                                                           // read reference to struct ObjectState
         sp_data = stack->mem_state[old_sp.struct_data.index];                              // read reference of struct ObjectState in a local variable lsim_persistent_struct->S
         TVEC_XOR_BANKS(diffs, &stack->activate[fad_division], &sp_data->deactivate, mybank);                               // determine the set of active processes
         l_val = *stack->flush[old_sp.struct_data.index/_SIM_PERSISTENT_LOCAL_POOL_SIZE_]; 
-        if (old_sp.raw_data != stack->S.raw_data)
+        if (old_sp.raw_data != stack->pstate->S.raw_data)
             continue;
         if (!TVEC_IS_SET(diffs, pid))                                                           // if the operation has already been deactivate return
             break;
@@ -197,7 +198,7 @@ Object PWFCombStackApplyOp(PWFCombStackStruct *stack, PWFCombStackThreadState *t
             TVEC_OR(l_activate, l_activate, (ToggleVector *)&stack->activate[i]);      // This is an atomic read, since a_toogles is volatile
         }
         
-        if (old_sp.raw_data != stack->S.raw_data)
+        if (old_sp.raw_data != stack->pstate->S.raw_data)
             continue;
         
         TVEC_XOR(diffs, &lsp_data->deactivate, l_activate);
@@ -260,21 +261,21 @@ Object PWFCombStackApplyOp(PWFCombStackStruct *stack, PWFCombStackThreadState *t
                     continue;
                 }
                 pop_counter += serialPop(lsp_data, proc_id);
-                if (old_sp.raw_data != stack->S.raw_data)
+                if (old_sp.raw_data != stack->pstate->S.raw_data)
                     goto outer;
             }
         }
 #ifdef SYNCH_DISABLE_ELIMINATION_ON_STACKS
         // Do not eliminate the PWB operations
         for (i = 0; i < clNewItems_size; i++) {
-            if (old_sp.raw_data != stack->S.raw_data)
+            if (old_sp.raw_data != stack->pstate->S.raw_data)
                 break;
             synchFlushPersistentMemory((void *)clNewItems[i], NVMEM_CACHE_LINE_SIZE);
         }
 #else
         // Trying to eliminate the PWB operations
         for (i = 0; i < clNewItems_size; i++) {
-            if (old_sp.raw_data != stack->S.raw_data)
+            if (old_sp.raw_data != stack->pstate->S.raw_data)
                 break;
             if (clNewItems_count[i] > 0)
                 synchFlushPersistentMemory((void *)clNewItems[i], NVMEM_CACHE_LINE_SIZE);
@@ -288,7 +289,7 @@ outer:
         new_sp.struct_data.index = local_index;                                                // store in mod_dw.index the index in stack->mem_state where lsim_persistent_struct->S will be stored
 
 
-        if (old_sp.raw_data==stack->S.raw_data) {
+        if (old_sp.raw_data==stack->pstate->S.raw_data) {
             synchFlushPersistentMemory((void *)lsp_data, PWFCombObjectStateSize(stack->nthreads));
             synchDrainPersistentMemory();
 
@@ -310,8 +311,8 @@ outer:
                 }
             }
 
-            if (old_sp.raw_data==stack->S.raw_data && synchCAS64(&stack->S, old_sp.raw_data, new_sp.raw_data)) {                    // try to change stack->S to the value mod_dw
-                synchFlushPersistentMemory((void *)&stack->S, sizeof(uint64_t));
+            if (old_sp.raw_data==stack->pstate->S.raw_data && synchCAS64(&stack->pstate->S, old_sp.raw_data, new_sp.raw_data)) {                    // try to change stack->S to the value mod_dw
+                synchFlushPersistentMemory((void *)&stack->pstate->S, sizeof(uint64_t));
                 synchDrainPersistentMemory();
                 synchCAS64(stack->flush[new_sp.struct_data.index/_SIM_PERSISTENT_LOCAL_POOL_SIZE_], l_val, l_val+1);
                 th_state->backoff = (th_state->backoff >> 1) | 1;
@@ -326,10 +327,10 @@ outer:
         }
     }
 
-    curr_pool_index = stack->S.struct_data.index;
+    curr_pool_index = stack->pstate->S.struct_data.index;
     l_val = *stack->flush[curr_pool_index/_SIM_PERSISTENT_LOCAL_POOL_SIZE_];
     if (l_val%2 == 1 && l_val == stack->comb_round[curr_pool_index/_SIM_PERSISTENT_LOCAL_POOL_SIZE_][pid]) {
-        synchFlushPersistentMemory((void *)&stack->S, sizeof(uint64_t));
+        synchFlushPersistentMemory((void *)&stack->pstate->S, sizeof(uint64_t));
         synchDrainPersistentMemory();
         synchCAS64(stack->flush[curr_pool_index/_SIM_PERSISTENT_LOCAL_POOL_SIZE_], l_val, l_val+1);
     }

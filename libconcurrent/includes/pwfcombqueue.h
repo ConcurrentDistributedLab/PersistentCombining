@@ -72,11 +72,18 @@ typedef struct PWFCombQueueThreadState {
     int backoff;
 } PWFCombQueueThreadState;
 
+
+typedef struct PWFCombQueuePersistentState{
+    /// @brief Index (i.e. pointer) to a PWFCombStateRec structs that contains the most recent and valid copy of simulated object's state.
+    volatile pointer_t S;
+} PWFCombQueuePersistentState;
+
+
 /// @brief PWFCombQueueStruct stores the state of an instance of the PWFqueue.
 /// PWFCombQueueStruct should be initialized using the PWFCombQueueStructInit function.
 typedef struct PWFCombQueueStruct {
-    volatile pointer_t ES CACHE_ALIGN;
-    volatile pointer_t DS CACHE_ALIGN;
+    volatile PWFCombQueuePersistentState * Epstate CACHE_ALIGN;
+    volatile PWFCombQueuePersistentState * Dpstate CACHE_ALIGN;
     // Guard node
     // Do not set this as const node
     Node guard CACHE_ALIGN;

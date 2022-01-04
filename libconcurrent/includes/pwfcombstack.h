@@ -50,11 +50,15 @@ typedef struct PWFCombStackThreadState {
     int backoff;
 } PWFCombStackThreadState;
 
+typedef struct PWFCombStackPersistentState{
+    /// @brief Index (i.e. pointer) to a PWFCombStackRec structs that contains the most recent and valid copy of stack's state.
+    volatile pointer_t S;
+} PWFCombStackPersistentState;
+
 /// @brief PWFCombStackStruct stores the state of an instance of the a PWFstack persistent stack object.
 /// PWFCombStackStruct should be initialized using the PWFCombStackStructInit function.
 typedef struct PWFCombStackStruct {
-    /// @brief Index (i.e. pointer) to a PWFCombStackRec structs that contains the most recent and valid copy of stack's state.
-    volatile pointer_t S;
+    volatile PWFCombStackPersistentState *pstate;
     /// @brief A vector of toggle bits, one toggle per NUMA node. The object could also work fine with a single such toggle.
     /// However, by using one toggle per NUMA node, the performance is increased substantially.
     ToggleVector activate[_SIM_PERSISTENT_FAD_DIVISIONS_] CACHE_ALIGN;

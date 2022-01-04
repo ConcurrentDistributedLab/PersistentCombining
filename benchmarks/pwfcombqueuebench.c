@@ -42,9 +42,6 @@ static void *Execute(void* Arg) {
         for (j = 0; j < rnum; j++)
             ;
     }
-    synchBarrierWait(&bar);
-    if (id == 0)
-        d2 = synchGetTimeMillis();
 
     return NULL;
 }
@@ -63,14 +60,14 @@ int main(int argc, char *argv[]) {
     synchPrintStats(bench_args.nthreads, bench_args.total_runs);
 
 #ifdef DEBUG
-    Node *first = queue->EState[queue->ES.struct_data.index]->first;
-    Node *last = queue->EState[queue->ES.struct_data.index]->last;
+    Node *first = queue->EState[queue->Epstate->S.struct_data.index]->first;
+    Node *last = queue->EState[queue->Epstate->S.struct_data.index]->last;
     if (first != NULL) {
         synchCASPTR(&first->next, NULL, last);
     }
-    fprintf(stderr, "DEBUG: Enqueue: Object state: %ld\n", (long)queue->EState[queue->ES.struct_data.index]->counter);
-    fprintf(stderr, "DEBUG: Dequeue: Object state: %ld\n", (long)queue->DState[queue->DS.struct_data.index]->counter);
-    volatile Node *head = queue->DState[queue->DS.struct_data.index]->head;
+    fprintf(stderr, "DEBUG: Enqueue: Object state: %ld\n", (long)queue->EState[queue->Epstate->S.struct_data.index]->counter);
+    fprintf(stderr, "DEBUG: Dequeue: Object state: %ld\n", (long)queue->DState[queue->Dpstate->S.struct_data.index]->counter);
+    volatile Node *head = queue->DState[queue->Dpstate->S.struct_data.index]->head;
     long counter = 0;
     while (head->next != NULL) {
         head = head->next;

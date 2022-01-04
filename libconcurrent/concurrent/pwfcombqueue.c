@@ -30,14 +30,14 @@ inline static void DeqLinkQueue(PWFCombQueueStruct *queue, PWFCombQueueDeqState 
     pointer_t ES;
     PWFCombQueueEnqRec *enq_pst;
 
-    ES.raw_data = queue->ES.raw_data;
+    ES.raw_data = queue->Epstate->S.raw_data;
     enq_pst = queue->EState[ES.struct_data.index];
 
     if (pst->head->next == NULL) {
         volatile Node *last = enq_pst->last;
         volatile Node *first = enq_pst->first;
         synchFullFence();
-        if (first != NULL && last != NULL && ES.raw_data == queue->ES.raw_data) {
+        if (first != NULL && last != NULL && ES.raw_data == queue->Epstate->S.raw_data) {
             synchCASPTR(&first->next, NULL, last);
             synchFlushPersistentMemory((void *)&first->next, sizeof(Node *));
         }
@@ -114,10 +114,12 @@ void PWFCombQueueInit(PWFCombQueueStruct *queue, uint32_t nthreads, int max_back
         TVEC_SET_ZERO((ToggleVector *)&queue->activate_deq[i]);                     
     }
 
+    queue->Epstate = synchGetPersistentMemory(S_CACHE_LINE_SIZE, sizeof(PWFCombQueuePersistentState));
+    queue->Dpstate = synchGetPersistentMemory(2*S_CACHE_LINE_SIZE, sizeof(PWFCombQueuePersistentState));
     tmp_sp.struct_data.index = LOCAL_POOL_SIZE * nthreads;
     tmp_sp.struct_data.seq = 0L;
-    queue->ES = tmp_sp;
-    queue->DS = tmp_sp;
+    queue->Epstate->S = tmp_sp;
+    queue->Dpstate->S = tmp_sp;
 
     queue->EState = synchGetPersistentMemory(CACHE_LINE_SIZE, (LOCAL_POOL_SIZE * nthreads + 1) * sizeof(PWFCombQueueEnqRec *));
     queue->DState = synchGetPersistentMemory(CACHE_LINE_SIZE, (LOCAL_POOL_SIZE * nthreads + 1) * sizeof(PWFCombQueueDeqState *));
@@ -200,11 +202,11 @@ void PWFCombQueueEnqueue(PWFCombQueueStruct *queue, PWFCombQueueThreadState *th_
     }
 
     for (j = 0; j < 2; j++) {
-        old_sp = queue->ES;
+        old_sp = queue->Epstate->S;
         sp_data = queue->EState[old_sp.struct_data.index];
         TVEC_XOR_BANKS(diffs, &queue->activate_enq[fad_division_enqueue], &sp_data->deactivate, mybank);                               // determine the set of active processes
         l_val = *queue->Eflush[old_sp.struct_data.index/LOCAL_POOL_SIZE]; 
-        if (old_sp.raw_data != queue->ES.raw_data)
+        if (old_sp.raw_data != queue->Epstate->S.raw_data)
             continue;
         if (!TVEC_IS_SET(diffs, pid))                                                           // if the operation has already been deactivate return
             break;
@@ -218,7 +220,7 @@ void PWFCombQueueEnqueue(PWFCombQueueStruct *queue, PWFCombQueueThreadState *th_
             TVEC_OR(l_activate, l_activate, (ToggleVector *)&queue->activate_enq[i]);                // This is an atomic read, since activate_enq is volatile
         }
 
-        if (old_sp.raw_data != queue->ES.raw_data)
+        if (old_sp.raw_data != queue->Epstate->S.raw_data)
             continue;
 
         for (i = 0; i < queue->nthreads; i++) {
@@ -287,12 +289,12 @@ void PWFCombQueueEnqueue(PWFCombQueueStruct *queue, PWFCombQueueThreadState *th_
         new_sp.struct_data.index = local_index;
 
         for (i = 0; i < clNewItems_size; i++) {
-            if (old_sp.raw_data != queue->ES.raw_data)
+            if (old_sp.raw_data != queue->Epstate->S.raw_data)
                 break;
             synchFlushPersistentMemory((void *)clNewItems[i], NVMEM_CACHE_LINE_SIZE);
         }
         
-        if (old_sp.raw_data == queue->ES.raw_data) {
+        if (old_sp.raw_data == queue->Epstate->S.raw_data) {
             synchFlushPersistentMemory(lsp_data, PWFCombQueueEnqStateSize(queue->nthreads));
             synchDrainPersistentMemory();
 
@@ -314,9 +316,9 @@ void PWFCombQueueEnqueue(PWFCombQueueStruct *queue, PWFCombQueueThreadState *th_
                 }
             }
 
-            if (old_sp.raw_data == queue->ES.raw_data && synchCAS64(&queue->ES, old_sp.raw_data, new_sp.raw_data)) {
+            if (old_sp.raw_data == queue->Epstate->S.raw_data && synchCAS64(&queue->Epstate->S, old_sp.raw_data, new_sp.raw_data)) {
                 EnqLinkQueue(queue, lsp_data);
-                synchFlushPersistentMemory((void *)&queue->ES, sizeof(uint64_t));
+                synchFlushPersistentMemory((void *)&queue->Epstate->S, sizeof(uint64_t));
                 synchDrainPersistentMemory();
                 synchCAS64(queue->Eflush[new_sp.struct_data.index/LOCAL_POOL_SIZE], l_val, l_val+1);
                 th_state->backoff = (th_state->backoff >> 1) | 1;
@@ -328,10 +330,10 @@ void PWFCombQueueEnqueue(PWFCombQueueStruct *queue, PWFCombQueueThreadState *th_
         }
     }
 
-    curr_pool_index = queue->ES.struct_data.index;
+    curr_pool_index = queue->Epstate->S.struct_data.index;
     l_val = *queue->Eflush[curr_pool_index/LOCAL_POOL_SIZE];
     if (l_val%2 == 1 && l_val == queue->Ecomb_round[curr_pool_index/LOCAL_POOL_SIZE][pid]) {
-        synchFlushPersistentMemory((void *)&queue->ES, sizeof(uint64_t));
+        synchFlushPersistentMemory((void *)&queue->Epstate->S, sizeof(uint64_t));
         synchDrainPersistentMemory();
         synchCAS64(queue->Eflush[curr_pool_index/LOCAL_POOL_SIZE], l_val, l_val+1);
     }
@@ -377,11 +379,11 @@ RetVal PWFCombQueueDequeue(PWFCombQueueStruct *queue, PWFCombQueueThreadState *t
     }
 
     for (j = 0; j < 2; j++) {
-        old_sp = queue->DS;
+        old_sp = queue->Dpstate->S;
         sp_data = queue->DState[old_sp.struct_data.index];
         TVEC_XOR_BANKS(diffs, &queue->activate_deq[fad_division_dequeue], &sp_data->deactivate, mybank);                               // determine the set of active processes
         l_val = *queue->Dflush[old_sp.struct_data.index/LOCAL_POOL_SIZE]; 
-        if (old_sp.raw_data != queue->DS.raw_data)
+        if (old_sp.raw_data != queue->Dpstate->S.raw_data)
             continue;
         if (!TVEC_IS_SET(diffs, pid))                                                           // if the operation has already been deactivate return
             break;
@@ -395,7 +397,7 @@ RetVal PWFCombQueueDequeue(PWFCombQueueStruct *queue, PWFCombQueueThreadState *t
             TVEC_OR(l_activate, l_activate, (ToggleVector *)&queue->activate_deq[i]);            // This is an atomic read, since activate_deq is volatile
         }
 
-        if (old_sp.raw_data != queue->DS.raw_data)
+        if (old_sp.raw_data != queue->Dpstate->S.raw_data)
             continue;
 
         TVEC_XOR(diffs, &lsp_data->deactivate, l_activate);
@@ -430,7 +432,7 @@ RetVal PWFCombQueueDequeue(PWFCombQueueStruct *queue, PWFCombQueueThreadState *t
         new_sp.struct_data.seq = old_sp.struct_data.seq + 1;
         new_sp.struct_data.index = local_index;
 
-        if (old_sp.raw_data == queue->DS.raw_data) {
+        if (old_sp.raw_data == queue->Dpstate->S.raw_data) {
             synchFlushPersistentMemory(lsp_data, PWFCombQueueDeqStateSize(queue->nthreads));
             synchDrainPersistentMemory();
 
@@ -452,8 +454,8 @@ RetVal PWFCombQueueDequeue(PWFCombQueueStruct *queue, PWFCombQueueThreadState *t
                 }
             }            
 
-            if (old_sp.raw_data == queue->DS.raw_data && synchCAS64(&queue->DS, old_sp.raw_data, new_sp.raw_data)) {                    // try to change stack->S to the value mod_dw
-                synchFlushPersistentMemory((void *)&queue->DS, sizeof(uint64_t));
+            if (old_sp.raw_data == queue->Dpstate->S.raw_data && synchCAS64(&queue->Dpstate->S, old_sp.raw_data, new_sp.raw_data)) {                    // try to change stack->S to the value mod_dw
+                synchFlushPersistentMemory((void *)&queue->Dpstate->S, sizeof(uint64_t));
                 synchDrainPersistentMemory();
                 synchCAS64(queue->Dflush[new_sp.struct_data.index/LOCAL_POOL_SIZE], l_val, l_val+1);
                 th_state->backoff = (th_state->backoff >> 1) | 1;
@@ -462,10 +464,10 @@ RetVal PWFCombQueueDequeue(PWFCombQueueStruct *queue, PWFCombQueueThreadState *t
         } else if (th_state->backoff < queue->MAX_BACK) th_state->backoff <<= 1;
     }
 
-    curr_pool_index = queue->DS.struct_data.index;
+    curr_pool_index = queue->Dpstate->S.struct_data.index;
     l_val = *queue->Dflush[curr_pool_index/LOCAL_POOL_SIZE];
     if (l_val%2 == 1 && l_val == queue->Dcomb_round[curr_pool_index/LOCAL_POOL_SIZE][pid]) {
-        synchFlushPersistentMemory((void *)&queue->DS, sizeof(uint64_t));
+        synchFlushPersistentMemory((void *)&queue->Dpstate->S, sizeof(uint64_t));
         synchDrainPersistentMemory();
         synchCAS64(queue->Dflush[curr_pool_index/LOCAL_POOL_SIZE], l_val, l_val+1);
     }

@@ -59,8 +59,8 @@ int main(int argc, char *argv[]) {
     synchPrintStats(bench_args.nthreads, bench_args.total_runs);
 
 #ifdef DEBUG
-    fprintf(stderr, "DEBUG: Object state: %lld\n", (long long int)stack->mem_state[stack->S.struct_data.index]->counter);
-    volatile Node *head = stack->mem_state[stack->S.struct_data.index]->head;
+    fprintf(stderr, "DEBUG: Object state: %lld\n", (long long int)stack->mem_state[stack->pstate->S.struct_data.index]->counter);
+    volatile Node *head = stack->mem_state[stack->pstate->S.struct_data.index]->head;
     long counter = 0;
     while (head != NULL) {
         head = head->next;

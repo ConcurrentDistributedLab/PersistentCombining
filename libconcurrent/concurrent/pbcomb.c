@@ -60,7 +60,7 @@ void PBCombStructInit(PBCombStruct *l, uint32_t nthreads, void *initial_state, u
     }
 
     l->state_size = state_size;
-    l->pstate = synchGetPersistentMemory(CACHE_LINE_SIZE, sizeof(PersistentState));
+    l->pstate = synchGetPersistentMemory(CACHE_LINE_SIZE, sizeof(PBCombPersistentState));
     l->pstate->last_state = synchGetPersistentMemory(CACHE_LINE_SIZE, sizeof(PBCombStateRec) + state_size +
                                         nthreads * sizeof(RetVal) + nthreads * sizeof(bool));
     l->pstate->last_state->state = ((void *)l->pstate->last_state->flex);
@@ -193,7 +193,7 @@ RetVal PBCombApplyOp(PBCombStruct *s, PBCombThreadState *st_thread, RetVal (*sfu
 
     s->pstate->last_state = new_state;
 
-    synchFlushPersistentMemory((void *)s->pstate, sizeof(PersistentState));
+    synchFlushPersistentMemory((void *)s->pstate, sizeof(PBCombPersistentState));
     synchDrainPersistentMemory();
 
     if (s->after_persist_func != NULL) {

@@ -40,9 +40,9 @@ void PWFCombInit(PWFCombStruct *pwfcomb_struct, uint32_t nthreads, int max_backo
         pwfcomb_struct->flush[i] = synchGetAlignedMemory(CACHE_LINE_SIZE, sizeof(uint64_t));
     }
 
- 
-    pwfcomb_struct->S.struct_data.index = _SIM_PERSISTENT_LOCAL_POOL_SIZE_ * nthreads;
-    pwfcomb_struct->S.struct_data.seq = 0;
+    pwfcomb_struct->pstate = synchGetPersistentMemory(2*S_CACHE_LINE_SIZE, sizeof(PWFCombPersistentState));
+    pwfcomb_struct->pstate->S.struct_data.index = _SIM_PERSISTENT_LOCAL_POOL_SIZE_ * nthreads;
+    pwfcomb_struct->pstate->S.struct_data.seq = 0;
 
     // OBJECT'S INITIAL VALUE
     // ----------------------
@@ -109,13 +109,13 @@ Object PWFCombApplyOp(PWFCombStruct *pwfcomb_struct, PWFCombThreadState *th_stat
     }
 
     for (j = 0; j < 2; j++) {
-        old_sp = pwfcomb_struct->S;                                                           // read reference to struct ObjectState
+        old_sp = pwfcomb_struct->pstate->S;                                                           // read reference to struct ObjectState
         sp_data = pwfcomb_struct->mem_state[old_sp.struct_data.index];                              // read reference of struct ObjectState in a local variable lsim_persistent_struct->S
 
         // Performance improvement
         TVEC_XOR_BANKS(diffs, &pwfcomb_struct->activate[fad_division], &sp_data->deactivate, mybank);                               // determine the set of active processes
         l_val = *pwfcomb_struct->flush[old_sp.struct_data.index/_SIM_PERSISTENT_LOCAL_POOL_SIZE_]; 
-        if (old_sp.raw_data != pwfcomb_struct->S.raw_data)
+        if (old_sp.raw_data != pwfcomb_struct->pstate->S.raw_data)
             continue;
         if (!TVEC_IS_SET(diffs, pid))                                                           // if the operation has already been deactivate return
             break;
@@ -123,7 +123,7 @@ Object PWFCombApplyOp(PWFCombStruct *pwfcomb_struct, PWFCombThreadState *th_stat
         uint64_t local_index = pid * _SIM_PERSISTENT_LOCAL_POOL_SIZE_ + TVEC_IS_SET(&sp_data->index, pid);
         lsp_data = pwfcomb_struct->mem_state[local_index];
         SimPersistentObjectStateCopy(lsp_data, sp_data);
-        if (old_sp.raw_data != pwfcomb_struct->S.raw_data)
+        if (old_sp.raw_data != pwfcomb_struct->pstate->S.raw_data)
             continue;
 
         TVEC_SET_ZERO(l_activate);
@@ -171,7 +171,7 @@ Object PWFCombApplyOp(PWFCombStruct *pwfcomb_struct, PWFCombThreadState *th_stat
         new_sp.struct_data.seq = old_sp.struct_data.seq + 1;                                   // increase timestamp
         new_sp.struct_data.index = local_index;
 
-        if (old_sp.raw_data==pwfcomb_struct->S.raw_data) {
+        if (old_sp.raw_data==pwfcomb_struct->pstate->S.raw_data) {
             synchFlushPersistentMemory((void *)lsp_data, PWFCombObjectStateSize(pwfcomb_struct->nthreads));
             synchDrainPersistentMemory();
 
@@ -194,8 +194,8 @@ Object PWFCombApplyOp(PWFCombStruct *pwfcomb_struct, PWFCombThreadState *th_stat
                 }
             }
 
-            if (old_sp.raw_data==pwfcomb_struct->S.raw_data && synchCAS64(&pwfcomb_struct->S, old_sp.raw_data, new_sp.raw_data)) {                    // try to change pwfcomb_struct->S to the value mod_dw
-                synchFlushPersistentMemory((void *)&pwfcomb_struct->S, sizeof(uint64_t));
+            if (old_sp.raw_data==pwfcomb_struct->pstate->S.raw_data && synchCAS64(&pwfcomb_struct->pstate->S, old_sp.raw_data, new_sp.raw_data)) {                    // try to change pwfcomb_struct->S to the value mod_dw
+                synchFlushPersistentMemory((void *)&pwfcomb_struct->pstate->S, sizeof(uint64_t));
                 synchDrainPersistentMemory();
                 synchCAS64(pwfcomb_struct->flush[new_sp.struct_data.index/_SIM_PERSISTENT_LOCAL_POOL_SIZE_], l_val, l_val+1);
                 th_state->backoff = (th_state->backoff >> 1) | 1;
@@ -204,10 +204,10 @@ Object PWFCombApplyOp(PWFCombStruct *pwfcomb_struct, PWFCombThreadState *th_stat
         } else if (th_state->backoff < pwfcomb_struct->MAX_BACK) th_state->backoff <<= 1;
     }
 
-    curr_pool_index = pwfcomb_struct->S.struct_data.index;
+    curr_pool_index = pwfcomb_struct->pstate->S.struct_data.index;
     l_val = *pwfcomb_struct->flush[curr_pool_index/_SIM_PERSISTENT_LOCAL_POOL_SIZE_];
     if (l_val%2 == 1 && l_val == pwfcomb_struct->comb_round[curr_pool_index/_SIM_PERSISTENT_LOCAL_POOL_SIZE_][pid]) {
-        synchFlushPersistentMemory((void *)&pwfcomb_struct->S, sizeof(uint64_t));
+        synchFlushPersistentMemory((void *)&pwfcomb_struct->pstate->S, sizeof(uint64_t));
         synchDrainPersistentMemory();
         synchCAS64(pwfcomb_struct->flush[curr_pool_index/_SIM_PERSISTENT_LOCAL_POOL_SIZE_], l_val, l_val+1);
     }
