@@ -92,11 +92,11 @@ printf "AtomicFloat-(Psync=off) (Figure 1c) - Experiment completed.\n"
 printf "\nCalculating the results of PB and PWF algorithms for Queue-throughput (Figure 1d).\n"
 # Run experiments
 # PBqueue
-./bench.sh  pbqueue.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbcomb.tmp
+./bench.sh  pbqueue.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbcomb.tmp
 # PWFqueue
-./bench.sh  pwfqueue.run -t ${THREADS} -s ${STEP} -b 22 | tee -a results/tmp/pwfcomb.tmp
+./bench.sh  pwfqueue.run -t ${THREADS} -s ${STEP} -w 512 -b 22 | tee -a results/tmp/pwfcomb.tmp
 # PBqueue-no-rec
-./bench.sh  pbqueue_no_rec.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbcomb-no-rec.tmp
+./bench.sh  pbqueue_no_rec.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbcomb-no-rec.tmp
 # Collect results
 echo -e "threads\t PBqueue" > results/tmp/pbcomb_res.tmp
 cat results/tmp/pbcomb.tmp | sed -r "s/\x1b\[[0-9;]*m?//g" | grep average | awk '{printf "%s\t%7.2f\n", $1, $9}' >> results/tmp/pbcomb_res.tmp
@@ -119,9 +119,9 @@ printf "Queue-throughput (Figure 1d) - Experiment completed.\n"
 printf "\nCalculating the results of PB and PWF algorithms for Queue-number-of-pwbs (Figure 1e).\n"
 # Run experiments
 # PBcomb
-./bench.sh  pbqueue_pwbs.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbcomb.tmp
+./bench.sh  pbqueue_pwbs.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbcomb.tmp
 # PWFcomb
-./bench.sh  pwfqueue_pwbs.run -t ${THREADS} -s ${STEP} -b 22 | tee -a results/tmp/pwfcomb.tmp
+./bench.sh  pwfqueue_pwbs.run -t ${THREADS} -s ${STEP} -w 512 -b 22 | tee -a results/tmp/pwfcomb.tmp
 # Collect results
 echo -e "threads\t PBqueue" > results/tmp/pbcomb_res.tmp
 cat results/tmp/pbcomb.tmp | sed -r "s/\x1b\[[0-9;]*m?//g" | grep average | awk '{printf "%s\n", $1}' >> results/tmp/pbcomb_res1.tmp
@@ -146,9 +146,9 @@ printf "Queue-number-of-pwbs (Figure 1e) - Experiment completed.\n"
 printf "\nCalculating the results of PB and PWF algorithms for Queue-throughput-with-no-pwbs (Figure 1f).\n"
 # Run experiments
 # PBqueue
-./bench.sh  pbqueue_no_pwbs.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbcomb.tmp
+./bench.sh  pbqueue_no_pwbs.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbcomb.tmp
 # PWFqueue
-./bench.sh  pwfqueue_no_pwbs.run -t ${THREADS} -s ${STEP} -b 22 | tee -a results/tmp/pwfcomb.tmp
+./bench.sh  pwfqueue_no_pwbs.run -t ${THREADS} -s ${STEP} -w 512 -b 22 | tee -a results/tmp/pwfcomb.tmp
 # Collect results
 echo -e "threads\t PBqueue" > results/tmp/pbcomb_res.tmp
 cat results/tmp/pbcomb.tmp | sed -r "s/\x1b\[[0-9;]*m?//g" | grep average | awk '{printf "%s\t%7.2f\n", $1, $9}' >> results/tmp/pbcomb_res.tmp
@@ -168,17 +168,17 @@ printf "Queue-throughput-with-no-pwbs (Figure 1f) - Experiment completed.\n"
 printf "\nCalculating the results of PB and PWF algorithms for Stack-throughput (Figure 1g).\n"
 # Run experiments
 # PBstack
-./bench.sh  pbstack.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbcomb.tmp
+./bench.sh  pbstack.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbcomb.tmp
 # PWFstack
-./bench.sh  pwfstack.run -t ${THREADS} -s ${STEP} -b 21 | tee -a results/tmp/pwfcomb.tmp
+./bench.sh  pwfstack.run -t ${THREADS} -s ${STEP} -w 512 -b 21 | tee -a results/tmp/pwfcomb.tmp
 # PBstack-no-rec
-./bench.sh  pbstack_no_rec.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbcomb-no-rec.tmp
+./bench.sh  pbstack_no_rec.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbcomb-no-rec.tmp
 # PWFstack-no-rec
-./bench.sh  pwfstack_no_rec.run -t ${THREADS} -s ${STEP} -b 21 | tee -a results/tmp/pwfcomb-no-rec.tmp
+./bench.sh  pwfstack_no_rec.run -t ${THREADS} -s ${STEP} -w 512 -b 21 | tee -a results/tmp/pwfcomb-no-rec.tmp
 # PBstack-no-elim
-./bench.sh  pbstack_no_elim.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbcomb-no-elim.tmp
+./bench.sh  pbstack_no_elim.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbcomb-no-elim.tmp
 # PWFstack-no-elim
-./bench.sh  pwfstack_no_elim.run -t ${THREADS} -s ${STEP} -b 21 | tee -a results/tmp/pwfcomb-no-elim.tmp
+./bench.sh  pwfstack_no_elim.run -t ${THREADS} -s ${STEP} -w 512 -b 21 | tee -a results/tmp/pwfcomb-no-elim.tmp
 # Collect results
 echo -e "threads\t PBstack" > results/tmp/pbcomb_res.tmp
 cat results/tmp/pbcomb.tmp | sed -r "s/\x1b\[[0-9;]*m?//g" | grep average | awk '{printf "%s\t%7.2f\n", $1, $9}' >> results/tmp/pbcomb_res.tmp
@@ -210,15 +210,15 @@ printf "Stack-throughput (Figure 1g) - Experiment completed.\n"
 printf "\nCalculating the results of PB and PWF algorithms for Heap-throughput (Figure 1f).\n"
 # Run experiments
 # PBheap-1024
-./bench.sh  pbheap1024.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbheap1024.tmp
+./bench.sh  pbheap1024.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbheap1024.tmp
 # PBheap-512
-./bench.sh  pbheap512.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbheap512.tmp
+./bench.sh  pbheap512.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbheap512.tmp
 # PBheap-256
-./bench.sh  pbheap256.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbheap256.tmp
+./bench.sh  pbheap256.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbheap256.tmp
 # PBheap-128
-./bench.sh  pbheap128.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbheap128.tmp
+./bench.sh  pbheap128.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbheap128.tmp
 # PBheap-64
-./bench.sh  pbheap64.run -t ${THREADS} -s ${STEP} | tee -a results/tmp/pbheap64.tmp
+./bench.sh  pbheap64.run -t ${THREADS} -s ${STEP} -w 512 | tee -a results/tmp/pbheap64.tmp
 # Collect results
 echo -e "threads\t PBheap-1024" > results/tmp/pbheap1024_res.tmp
 cat results/tmp/pbheap1024.tmp | sed -r "s/\x1b\[[0-9;]*m?//g" | grep average | awk '{printf "%s\t%7.2f\n", $1, $9}' >> results/tmp/pbheap1024_res.tmp
