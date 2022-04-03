@@ -37,11 +37,11 @@ Each figure presents either the average throughput (million operations per secon
 | 1a       | throughput for PBcomb and PWFcomb                                                 |
 | 1b       | number of pwbs for PBcomb and PWFcomb                                             |
 | 1c       | similar with 1a & versions of PBcomb and PWFcomb that do not execute any psync    |
-| 1d       | throughput for PBqueue (with and without recycling) and for PWFqueue              |
-| 1e       | number of pwbs for PBqueue and PWFqueue                                           |
-| 1f       | throughput for PBqueue and PWFqueue that do not execute any pwb                   |
-| 1g       | throughput for PBstack and PWFstack (with and without recycling or elimination)   |
-| 1h       | throughput for PBheap with heap size 64, 128, 256, 512, and 1024                  |
+| 2a       | throughput for PBqueue (with and without recycling) and for PWFqueue              |
+| 2b       | number of pwbs for PBqueue and PWFqueue                                           |
+| 2c       | throughput for PBqueue and PWFqueue that do not execute any pwb                   |
+| 3a       | throughput for PBstack and PWFstack (with and without recycling or elimination)   |
+| 3b       | throughput for PBheap with heap size 64, 128, 256, 512, and 1024                  |
 
 # Memory reclamation (stacks and queues)
 
