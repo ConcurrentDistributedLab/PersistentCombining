@@ -32,7 +32,6 @@ typedef struct PBCombRequest {
 
 /// @brief This struct describes the state of the simulated object.
 typedef struct PBCombStateRec {
-    uint64_t lock_value;
     /// @brief The actual data of the state, which a pointer that points to the flex field.
     volatile void *state;
     /// @brief The return values, one per thread.
@@ -71,6 +70,7 @@ typedef struct PBCombStruct {
     volatile uint32_t state_size;
     /// @brief This is an integer lock that allows a single combiner to serve requests at each point in time.
     volatile uint32_t lock CACHE_ALIGN;
+    volatile uint64_t lock_value CACHE_ALIGN;
     /// @brief A pointer to the latest valid, persisted state of the simulated object.
     /// For performance reasons, we use a pool of PBCOMB_POOL_SIZE * `n` such states instead of 2 in the paper
     /// (`n` is the number of threads).

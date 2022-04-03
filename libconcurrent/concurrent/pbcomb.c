@@ -46,6 +46,7 @@ void PBCombStructInit(PBCombStruct *l, uint32_t nthreads, void *initial_state, u
     int i;
 
     l->lock = 0;
+    l->lock_value = 0;
 #ifdef DEBUG
     l->counter = 0;
     l->rounds = 0;
@@ -73,7 +74,6 @@ void PBCombStructInit(PBCombStruct *l, uint32_t nthreads, void *initial_state, u
         l->pstate->last_state->return_value[i] = 0;
         l->pstate->last_state->deactivate[i] = 0;
     }
-    l->pstate->last_state->lock_value = 0;
 #ifdef NUMA_SUPPORT
     l->numa_nodes = numa_num_task_nodes();
 #else
@@ -151,7 +151,7 @@ RetVal PBCombApplyOp(PBCombStruct *s, PBCombThreadState *st_thread, RetVal (*sfu
 
             volatile PBCombStateRec *last_state = s->pstate->last_state;
             if (last_state->deactivate[st_thread->numa_id] == s->request[st_thread->numa_id].activate) {
-                if (last_state->lock_value == lock_value)
+                if (s->lock_value == lock_value)
                     return last_state->return_value[st_thread->numa_id];
                 while (s->lock == lock_value+2)
                     synchResched();
@@ -191,6 +191,7 @@ RetVal PBCombApplyOp(PBCombStruct *s, PBCombThreadState *st_thread, RetVal (*sfu
     synchFlushPersistentMemory((void *)new_state->flex, s->state_size + s->nthreads * sizeof(RetVal) + s->nthreads * sizeof(bool));
     synchDrainPersistentMemory();
 
+    s->lock_value = s->lock;
     s->pstate->last_state = new_state;
 
     synchFlushPersistentMemory((void *)s->pstate, sizeof(PBCombPersistentState));
@@ -201,7 +202,6 @@ RetVal PBCombApplyOp(PBCombStruct *s, PBCombThreadState *st_thread, RetVal (*sfu
     }
 
     st_thread->pool_index = (st_thread->pool_index + 1) % PBCOMB_POOL_SIZE;
-    s->pstate->last_state->lock_value = s->lock;
     s->lock += 1;
     synchFullFence();
 
